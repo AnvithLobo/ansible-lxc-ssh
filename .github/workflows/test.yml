@@ -302,6 +302,12 @@ jobs:
       - name: Create a nested container
         run: sudo lxc exec test-container -- sudo lxc launch images:ubuntu/${{ matrix.guest }} nested-container
 
+      - name: add container user to lxd group
+        run: sudo lxc exec test-container -- sudo adduser ubuntu lxd
+
+      - name: Wait for container to start
+        run: sleep 30
+
       - name: Generate ansible inventory
         run: |
           cat <<EOF > $GITHUB_WORKSPACE/tests/inventory.yml
