@@ -296,7 +296,7 @@ jobs:
         run: sudo lxc file push $GITHUB_WORKSPACE/.github/resources/lxd4-init.yml test-container/home/ubuntu/lxd4-init.yml
 
       - name: Init LXD inside container
-        run: sudo lxd init --preseed < /home/ubuntu/lxd4-init.yml
+        run: sudo lxc exec test-container -- sudo lxd init --preseed < /home/ubuntu/lxd4-init.yml
 
       # Create a nested container for lxc_ssh tests
       - name: Create a nested container
