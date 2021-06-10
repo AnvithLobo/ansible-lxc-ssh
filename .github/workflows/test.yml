@@ -318,7 +318,7 @@ jobs:
           EOF
 
       - name: Show inventory file
-        run: cat $GITHUB_WORKSPACE/tests/
+        run: cat $GITHUB_WORKSPACE/tests/inventory.yml
 
       - name: Run test
         run: ANSIBLE_CONFIG=$GITHUB_WORKSPACE/tests/ cd tests && ansible-playbook -i $GITHUB_WORKSPACE/tests/inventory.yml $GITHUB_WORKSPACE/tests/test-lxc_ssh.yml -vv
