@@ -142,11 +142,11 @@ jobs:
 
 
       # create ssh key for root
-      - name: Create ssh directory for root
-        run: sudo mkdir -p /root/keys/
-
+      - name: Create ssh key directory for root
+        run: sudo mkdir -p /root/keys/ && sudo mkdir -p /root/.ssh/
+      
       - name: Update permissions for ssh directory for root
-        run: sudo chmod 0700 /root/keys/
+        run: sudo chmod 0700 /root/keys/ && sudo chmod 0700 /root/.ssh/
 
       # Write the key file to a non standard path
       - name: Generate OpenSSH key for root
@@ -156,10 +156,10 @@ jobs:
 
       # create ssh key for runner user
       - name: Create ssh directory for runner user
-        run: mkdir -p $HOME/keys/
+        run: mkdir -p $HOME/keys/ && mkdir -p $HOME/.ssh/
 
       - name: Update permissions for ssh directory for runner user
-        run: chmod 0700 $HOME/keys/
+        run: chmod 0700 $HOME/keys/ && chmod 0700 $HOME/.ssh/
 
       - name: Generate OpenSSH key for runner user
         #run: ssh-keygen -t rsa -b 4096 -f $HOME/.ssh/id_rsa -v -N "" -P "" -C "home/runner@host"
@@ -290,10 +290,17 @@ jobs:
 
       - name: Show test directory
         run: bash -c "ls -ld $GITHUB_WORKSPACE/tests/*"
+        
+      # nested LXD configuration
+      - name: Copy the lxd init file to container
+        run: sudo lxc file push $GITHUB_WORKSPACE/.github/resources/lxd4-init.yml /home/ubuntu/lxd4-init.yml
+
+      - name: Init LXD inside container
+        run: sudo lxd init --preseed < /home/ubuntu/lxd4-init.yml
 
       # Create a nested container for lxc_ssh tests
       - name: Create a nested container
-        run: sudo lxc launch images:ubuntu/${{ matrix.guest }} nested-container
+        run: sudo lxc exec test-container -- sudo lxc launch images:ubuntu/${{ matrix.guest }} nested-container
 
       - name: Generate ansible inventory
         run: |
