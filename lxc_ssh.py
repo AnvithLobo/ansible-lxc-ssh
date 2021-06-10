@@ -402,13 +402,18 @@ DOCUMENTATION = """
             The lxc host to connect to.
         env:
             - name: LXC_HOST
+            - name: LXC_CONTAINER
         ini:
             - key: lxc_host
               section: lxc_ssh_connection
+            - key: lxc_container
+              section: lxc_ssh_connection
         vars:
           - name: lxc_host
+          - name: lxc_container
         cli:
           - name: lxc_host
+          - name: lxc_container
 """
 
 
@@ -719,7 +724,7 @@ class Connection(ConnectionBase):
                 "ANSIBLE_REMOTE_PORT/remote_port/ansible_port set",
             )
 
-        key = self.get_option("private_key_file")
+        key = self._play_context.private_key_file
         if key:
             b_args = (
                 b"-o",
@@ -749,7 +754,7 @@ class Connection(ConnectionBase):
                 "ansible_password/ansible_ssh_password not set",
             )
 
-        self.user = self.get_option("remote_user")
+        self.user = self._play_context.remote_user
         if self.user:
             self._add_args(
                 b_command,
