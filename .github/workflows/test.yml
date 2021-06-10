@@ -100,8 +100,9 @@ jobs:
 
 
       # create an actual container, and configure it
+      # Enable container nesting
       - name: Create container
-        run: sudo lxc launch images:ubuntu/${{ matrix.guest }} test-container
+        run: sudo lxc launch images:ubuntu/${{ matrix.guest }} test-container -c security.nesting=true
 
       - name: Wait for container to start
         run: sleep 30
@@ -142,26 +143,27 @@ jobs:
 
       # create ssh key for root
       - name: Create ssh directory for root
-        run: sudo mkdir -p /root/.ssh/
+        run: sudo mkdir -p /root/keys/
 
       - name: Update permissions for ssh directory for root
-        run: sudo chmod 0700 /root/.ssh/
+        run: sudo chmod 0700 /root/keys/
 
+      # Write the key file to a non standard path
       - name: Generate OpenSSH key for root
         #run: sudo ssh-keygen -t rsa -b 4096 -f /root/.ssh/id_rsa -v -N "" -P "" -C "root@host"
-        run: sudo ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -v -N "" -P "" -C "root@host"
+        run: sudo ssh-keygen -t ed25519 -f /root/keys/id_ed25519 -v -N "" -P "" -C "root@host"
 
 
       # create ssh key for runner user
       - name: Create ssh directory for runner user
-        run: mkdir -p $HOME/.ssh/
+        run: mkdir -p $HOME/keys/
 
       - name: Update permissions for ssh directory for runner user
-        run: chmod 0700 $HOME/.ssh/
+        run: chmod 0700 $HOME/keys/
 
       - name: Generate OpenSSH key for runner user
         #run: ssh-keygen -t rsa -b 4096 -f $HOME/.ssh/id_rsa -v -N "" -P "" -C "home/runner@host"
-        run: ssh-keygen -t ed25519 -f $HOME/.ssh/id_ed25519 -v -N "" -P "" -C "home/runner@host"
+        run: ssh-keygen -t ed25519 -f $HOME/keys/id_ed25519 -v -N "" -P "" -C "home/runner@host"
 
 
       # install OpenSSH in container
@@ -184,11 +186,11 @@ jobs:
       # install root and user ssh key in container for root and user
       - name: OpenSSH push authorized_keys for root into container
         #run: sudo lxc file push /root/.ssh/id_rsa.pub test-container/root/.ssh/authorized_keys
-        run: sudo lxc file push /root/.ssh/id_ed25519.pub test-container/root/.ssh/authorized_keys
+        run: sudo lxc file push /root/keys/id_ed25519.pub test-container/root/.ssh/authorized_keys
 
       - name: OpenSSH push authorized_keys for user into container
         #run: sudo lxc file push $HOME/.ssh/id_rsa.pub test-container/tmp/authorized_keys.user
-        run: sudo lxc file push $HOME/.ssh/id_ed25519.pub test-container/tmp/authorized_keys.user
+        run: sudo lxc file push $HOME/keys/id_ed25519.pub test-container/tmp/authorized_keys.user
 
       - name: OpenSSH add user key to root authorized_keys in container
         #run: sudo lxc exec test-container -- bash -c "cat /tmp/authorized_keys.user | sudo tee -a /root/.ssh/authorized_keys"
@@ -225,16 +227,16 @@ jobs:
 
       # test ssh connection in all combinations
       - name: Test ssh connection from root into root
-        run: sudo ssh -i /root/.ssh/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l root ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
+        run: sudo ssh -i /root/keys/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l root ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
 
       - name: Test ssh connection from root into ubuntu user
-        run: sudo ssh -i /root/.ssh/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l ubuntu ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
+        run: sudo ssh -i /root/keys/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l ubuntu ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
 
       - name: Test ssh connection from runner into root user
-        run: ssh -i $HOME/.ssh/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l root ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
+        run: ssh -i $HOME/keys/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l root ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
 
       - name: Test ssh connection from runner into ubuntu user
-        run: ssh -i $HOME/.ssh/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l ubuntu ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
+        run: ssh -i $HOME/keys/id_ed25519 -o PreferredAuthentications=publickey -o PasswordAuthentication=no -l ubuntu ${{ steps.test_container_ipv4.outputs.IPv4 }} uptime
 
 
       # copy logfiles from container into log
@@ -289,5 +291,27 @@ jobs:
       - name: Show test directory
         run: bash -c "ls -ld $GITHUB_WORKSPACE/tests/*"
 
+      # Create a nested container for lxc_ssh tests
+      - name: Create a nested container
+      run: sudo lxc launch images:ubuntu/${{ matrix.guest }} nested-container
+
+      - name: Generate ansible inventory
+      run: |
+        cat <<EOF > $GITHUB_WORKSPACE/tests/inventory.yml
+        ---
+        all:
+          hosts: 
+            testhost:
+              ansible_host: ${{ steps.test_container_ipv4.outputs.IPv4 }}
+              ansible_port: 22
+              ansible_user: 'root'
+              ansible_ssh_private_key_file : /root/keys/id_ed25519
+              lxc_container: "nested-container"
+              ansible_connection: lxc_ssh
+        EOF
+
+      - name: Show inventory file
+        run: cat $GITHUB_WORKSPACE/tests/
+
       - name: Run test
-        run: ANSIBLE_CONFIG=$GITHUB_WORKSPACE/tests/ cd tests && ansible-playbook -i ${{ steps.test_container_ipv4.outputs.IPv4 }}, $GITHUB_WORKSPACE/tests/test-lxc_ssh.yml
+        run: ANSIBLE_CONFIG=$GITHUB_WORKSPACE/tests/ cd tests && ansible-playbook -i $GITHUB_WORKSPACE/tests/inventory.yml $GITHUB_WORKSPACE/tests/test-lxc_ssh.yml -vv
