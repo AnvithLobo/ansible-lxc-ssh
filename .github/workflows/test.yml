@@ -293,7 +293,7 @@ jobs:
         
       # nested LXD configuration
       - name: Copy the lxd init file to container
-        run: sudo lxc file push $GITHUB_WORKSPACE/.github/resources/lxd4-init.yml /home/ubuntu/lxd4-init.yml
+        run: sudo lxc file push $GITHUB_WORKSPACE/.github/resources/lxd4-init.yml test-container/home/ubuntu/lxd4-init.yml
 
       - name: Init LXD inside container
         run: sudo lxd init --preseed < /home/ubuntu/lxd4-init.yml
