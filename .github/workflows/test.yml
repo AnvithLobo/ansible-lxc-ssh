@@ -263,6 +263,9 @@ jobs:
       - name: Python3
         run: sudo lxc exec test-container --env DEBIAN_FRONTEND=noninteractive -- apt-get -y install -y python3
 
+      # Install LXD inside cotnainer its missing inside container
+      - name: Install LXD inside container
+        run: sudo lxc exec test-container --env DEBIAN_FRONTEND=noninteractive -- sudo apt-get install -y lxd lxd-client lxd-tools iptables
 
       # container is ready
 
