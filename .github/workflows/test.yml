@@ -105,7 +105,7 @@ jobs:
         run: sudo lxc launch images:ubuntu/${{ matrix.guest }} test-container -c security.nesting=true
 
       - name: Wait for container to start
-        run: sleep 30
+        run: sleep 10
 
       - name: Show container
         run: sudo lxc list
@@ -306,7 +306,7 @@ jobs:
         run: sudo lxc exec test-container -- sudo adduser ubuntu lxd
 
       - name: Wait for container to start
-        run: sleep 30
+        run: sleep 10
 
       - name: Generate ansible inventory
         run: |
@@ -327,4 +327,4 @@ jobs:
         run: cat $GITHUB_WORKSPACE/tests/inventory.yml
 
       - name: Run test
-        run: ANSIBLE_CONFIG=$GITHUB_WORKSPACE/tests/ cd tests && ansible-playbook -i $GITHUB_WORKSPACE/tests/inventory.yml $GITHUB_WORKSPACE/tests/test-lxc_ssh.yml -vv
+        run: ANSIBLE_CONFIG=$GITHUB_WORKSPACE/tests/ cd tests && ansible-playbook -i $GITHUB_WORKSPACE/tests/inventory.yml $GITHUB_WORKSPACE/tests/test-lxc_ssh.yml
